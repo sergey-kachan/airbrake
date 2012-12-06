@@ -41,12 +41,12 @@ module Airbrake
                  rescue *HTTP_ERRORS => e
                    log :level => :error,
                        :message => "Unable to contact the Airbrake server. HTTP Error=#{e}"
-                   nil
+                   return
                  end
 
       case response
       when Net::HTTPSuccess then
-        log :level => :info,
+        log :level => :debug,
             :message => "Success: #{response.class}",
             :response => response
       else
@@ -56,7 +56,7 @@ module Airbrake
             :notice => notice
       end
 
-      if response && response.respond_to?(:body)
+      if response.respond_to?(:body)
         error_id = response.body.match(%r{<id[^>]*>(.*?)</id>})
         error_id[1] if error_id
       end
@@ -90,14 +90,12 @@ module Airbrake
     end
 
     def log(opts = {})
-      opts[:logger].send opts[:level], LOG_PREFIX + opts[:message] if opts[:logger]
+      logger = opts[:logger] || Airbrake.logger
+      logger.send opts[:level], LOG_PREFIX + opts[:message] if logger
+
       Airbrake.report_environment_info
       Airbrake.report_response_body(opts[:response].body) if opts[:response] && opts[:response].respond_to?(:body)
       Airbrake.report_notice(opts[:notice]) if opts[:notice]
-    end
-
-    def logger
-      Airbrake.logger
     end
 
     def setup_http_connection
@@ -118,11 +116,6 @@ module Airbrake
       end
 
       http
-    rescue => e
-      log :level => :error,
-          :message => "[Airbrake::Sender#setup_http_connection] Failure initializing the HTTP connection.\n" +
-                      "Error: #{e.class} - #{e.message}\nBacktrace:\n#{e.backtrace.join("\n\t")}"
-      raise e
     end
   end
 end
