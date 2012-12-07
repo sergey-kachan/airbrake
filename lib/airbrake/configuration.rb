@@ -120,7 +120,7 @@ module Airbrake
           line
         end
       },
-      lambda { |line| line.gsub(/^\.\//, "") },
+      lambda { |line| line.gsub(/^\.\//, "[PROJECT_ROOT]") },
       lambda { |line|
         if defined?(Gem)
           Gem.path.inject(line) do |line, path|
