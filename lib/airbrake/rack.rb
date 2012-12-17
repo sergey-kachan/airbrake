@@ -32,8 +32,17 @@ module Airbrake
         any? { |ua| ua === env['HTTP_USER_AGENT'] }
     end
 
-    def notify_airbrake(exception,env)
-      Airbrake.notify_or_ignore(exception,:rack_env => env) unless ignored_user_agent?(env)
+    def notify_airbrake(exception, env)
+      controller = env['action_controller.instance']
+      if !controller.respond_to?(:airbrake_request_data)
+        opts = { :rack_env => env }
+      else
+        opts = controller.send(:airbrake_request_data)
+      end
+
+      unless ignored_user_agent?(env)
+        Airbrake.notify_or_ignore(exception, opts)
+      end
     end
 
     def call(env)
